@@ -1,0 +1,808 @@
+﻿<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Test — Eysenck</title>
+  <style>
+    /* --- Migliore usabilità mobile e centratura quiz --- */
+.question {
+  text-align: center;
+  font-size: 1.4rem;
+  margin: 30px auto;
+  max-width: 90%;
+}
+
+.true-btn, .false-btn {
+  display: inline-block;
+  width: 45%;
+  max-width: 200px;
+  font-size: 1.5rem;
+  padding: 1rem;
+  margin: 10px;
+  border-radius: 12px;
+  border: none;
+  background: #007bff;
+  color: white;
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.true-btn:hover, .false-btn:hover {
+  background-color: #0056b3;
+  transform: scale(1.05);
+}
+
+.true-btn.selected, .false-btn.selected {
+  background: #28a745;
+}
+
+.nav {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.nav button {
+  font-size: 1.2rem;
+  padding: 0.8rem 1.5rem;
+  background: #6c757d;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.nav button:hover {
+  background: #5a6268;
+}
+
+#progressText {
+  display: block;
+  text-align: center;
+  margin-top: 10px;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+/* Mobile: pulsanti e testo più leggibili */
+@media (max-width: 600px) {
+  .true-btn, .false-btn {
+    width: 80%;
+    font-size: 1.4rem;
+  }
+
+  .nav button {
+    font-size: 1.1rem;
+    padding: 0.7rem 1.2rem;
+  }
+
+  .question {
+    font-size: 1.2rem;
+  }
+}
+
+    body { font-family: sans-serif; margin: 40px; background: #f8f9fa; color: #222; }
+    .question { margin-bottom: 20px; }
+    button { margin: 5px; padding: 8px 14px; border-radius: 8px; border: 1px solid #ccc; cursor: pointer; }
+    button.selected { background: #007bff; color: #fff; }
+    .nav { margin-top: 20px; }
+    #summary { display: none; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 0 8px rgba(0,0,0,0.1); }
+  </style>
+</head>
+<body>
+
+  <div id="quiz"></div>
+
+  <div class="nav">
+    <button id="prevBtn">Indietro</button>
+    <button id="nextBtn">Avanti</button>
+    <button id="finishBtn">Fine</button>
+    <span id="progressText"></span>
+  </div>
+
+  <div id="summary">
+    <h2>Risultati</h2>
+    <div id="summaryText"></div>
+  </div>
+
+  <script>
+  document.addEventListener("DOMContentLoaded", () => {
+    let currentQuestionIndex = 0;
+    const userAnswers = {};
+
+    const allQuestions = [
+        {q: "Mi piacciono le riviste di meccanica", a: "FALSO"},
+{q: "Ho un buon appetito", a: "VERO"},
+{q: "Mi sveglio fresco e riposato quasi tutte le mattine", a: "VERO"},
+{q: "Penso che mi piacerebbe lavorare come bibliotecario", a: "FALSO"},
+{q: "Vengo facilmente svegliato dai rumori", a: "FALSO"},
+{q: "Mio padre è una buona persona, o (se suo padre è morto) mio padre è stato una buona persona", a: "VERO"},
+{q: "Mi piace leggere gli articoli di cronaca nera", a: "FALSO"},
+{q: "Di solito ho le mani e i piedi abbastanza caldi", a: "VERO"},
+{q: "La mia vita di ogni giorno è piena di cose che mi interessano", a: "VERO"},
+{q: "Sono capace di lavorare come lo sono sempre stato", a: "VERO"},
+{q: "Molto spesso mi sembra di avere un nodo alla gola", a: "FALSO"},
+{q: "Sono soddisfatto della mia vita sessuale", a: "VERO"},
+{q: "Le persone dovrebbero cercare di capire i loro sogni, esserne guidate e trarne consiglio", a: "FALSO"},
+{q: "Mi piacciono i racconti di spionaggio o polizieschi", a: "VERO"},
+{q: "Lavoro sotto una forte tensione nervosa", a: "FALSO"},
+{q: "A volte penso a cose così cattive da non poterne parlare", a: "FALSO"},
+{q: "Sono sicuro che la vita mi tratta male", a: "FALSO"},
+{q: "Soffro di attacchi di nausea e di vomito", a: "FALSO"},
+{q: "Quando inizio un nuovo lavoro cerco di capire a chi è importante essere simpatici", a: "FALSO"},
+{q: "Molto raramente soffro di stitichezza", a: "VERO"},
+{q: "A volte ho desiderato molto andare via da casa", a: "FALSO"},
+{q: "Nessuno sembra capirmi", a: "FALSO"},
+{q: "A volte scoppio a ridere o a piangere senza riuscire a controllarmi", a: "FALSO"},
+{q: "A volte sono posseduto dagli spiriti maligni", a: "FALSO"},
+{q: "Mi piacerebbe essere un cantante", a: "FALSO"},
+{q: "Quando sono nei guai, penso che la cosa migliore sia di non parlarne a nessuno", a: "FALSO"},
+{q: "Quando uno mi fa un torto, sento che dovrei fargliela pagare, se possibile, magari solo per principio", a: "FALSO"},
+{q: "Ho disturbi di stomaco diverse volte alla settimana", a: "FALSO"},
+{q: "A volte mi viene voglia di imprecare", a: "FALSO"},
+{q: "Spesso la notte ho degli incubi", a: "FALSO"},
+{q: "Mi riesce difficile concentrarmi su un compito o su un lavoro", a: "FALSO"},
+{q: "Ho avuto esperienze molto strane e insolite", a: "FALSO"},
+{q: "Mi preoccupo raramente della mia salute", a: "FALSO"},
+{q: "Mai mi sono trovato nei guai a causa del mio comportamento sessuale", a: "VERO"},
+{q: "Qualche volta, da ragazzo, ho rubato delle cose", a: "FALSO"},
+{q: "Ho quasi sempre la tosse", a: "FALSO"},
+{q: "A volte mi viene voglia di fracassare qualcosa", a: "FALSO"},
+{q: "Ho avuto periodo di giorni, settimane o mesi in cui mi era difficile combinare qualcosa, perché non riuscivo ad incominciare", a: "FALSO"},
+{q: "Ho il sonno agitato e disturbato", a: "FALSO"},
+{q: "Quasi sempre mi sembra che la testa mi faccia male dappertutto", a: "FALSO"},
+{q: "Non sempre dico la verità", a: "FALSO"},
+{q: "Se la gente non ce l’avesse avuta con me, avrei potuto avere molto più successo", a: "FALSO"},
+{q: "La mia capacità di giudizio è migliore di quanto sia mai stata", a: "FALSO"},
+{q: "Una volta la settimana o più spesso, mi sento improvvisamente tutto caldo senza alcuna ragione", a: "VERO"},
+{q: "Sono in buona salute fisica come la maggior parte dei miei amici", a: "VERO"},
+{q: "Se incontro vecchi compagni di scuola o conoscenti che non vedo da molto tempo, preferisco far finta di niente, a meno che non siano loro i primi a parlarmi", a: "FALSO"},
+{q: "Non soffro quasi mai di dolori nella regione del cuore o al torace", a: "VERO"},
+{q: "Me ne starei quasi sempre a sognare ad occhi aperti piuttosto che fare qualsiasi altra cosa", a: "FALSO"},
+{q: "Sono una persona molto socievole", a: "VERO"},
+{q: "Spesso ho dovuto prendere ordini da qualcuno che ne sapeva meno di me", a: "FALSO"},
+{q: "Non tutti i giorni leggo l’articolo di fondo del giornale", a: "VERO"},
+{q: "Non ho vissuto la vita in maniera giusta", a: "FALSO"},
+{q: "Spesso sento bruciori, punture, formicolii in alcune parti del mio corpo, o me le sento come se fossero addormentate", a: "FALSO"},
+{q: "Alla mia famiglia non piace il lavoro che ho scelto (o il lavoro che intendo scegliere)", a: "FALSO"},
+{q: "A volte insisto fino a che gli altri perdono la pazienza con me", a: "FALSO"},
+{q: "Vorrei essere felice così come sembrano esserlo gli altri", a: "FALSO"},
+{q: "Raramente soffro di dolori dietro al collo", a: "VERO"},
+{q: "Penso che moltissime persone esagerino le proprie disgrazie per ottenere la simpatia e l’aiuto degli altri", a: "FALSO"},
+{q: "Sono disturbato da pesantezza di stomaco due o tre volte alla settimana, o anche più spesso", a: "FALSO"},
+{q: "Quando sono con la gente, sono disturbato dal fatto di udire cose molto strane", a: "FALSO"},
+{q: "Sono una persona importante", a: "FALSO"},
+{q: "Ho spesso desiderato essere una donna, oppure (se Lei è una donna) non mi è mai dispiaciuto essere una donna", a: "FALSO"},
+{q: "Non sono ferito facilmente nei miei sentimenti", a: "VERO"},
+{q: "Mi piace leggere storie d’amore", a: "FALSO"},
+{q: "Di solito sono malinconico", a: "FALSO"},
+{q: "Sarebbe meglio se quasi tutte le leggi venissero eliminate", a: "FALSO"},
+{q: "Mi piacciono le poesie", a: "FALSO"},
+{q: "Talvolta molesto gli animali", a: "FALSO"},
+{q: "Penso che mi piacerebbe fare il tipo di lavoro che fa una guardia forestale", a: "FALSO"},
+{q: "Vengo facilmente vinto nelle discussioni", a: "FALSO"},
+{q: "In questo periodo trovo difficile mantenere la speranza di raggiungere qualcosa nella vita", a: "FALSO"},
+{q: "Qualche volta la mia anima lascia il mio corpo", a: "FALSO"},
+{q: "Mi manca proprio la fiducia in me stesso", a: "FALSO"},
+{q: "Mi piacerebbe essere un fioraio", a: "FALSO"},
+{q: "Generalmente sento che la vita merita di essere vissuta", a: "VERO"},
+{q: "Bisogna discutere molto con la maggior parte della gente per convincerla della verità", a: "FALSO"},
+{q: "Ogni tanto rimando a domani quello che dovrei fare oggi", a: "FALSO"},
+{q: "Piaccio alla maggior parte delle persone che mi conoscono", a: "VERO"},
+{q: "Non me la prendo se vengo preso in giro", a: "VERO"},
+{q: "Mi piacerebbe essere un’infermiera (o un infermiere)", a: "FALSO"},
+{q: "Penso che la maggior parte delle persone mentirebbe per farsi strada nella vita", a: "FALSO"},
+{q: "Faccio molte cose di cui dopo mi pento (più di quanto sembra lo facciano gli altri)", a: "FALSO"},
+{q: "Ho pochissimi litigi con i miei familiari", a: "VERO"},
+{q: "Sono stato sospeso da scuola una o più volte per cattiva condotta", a: "FALSO"},
+{q: "A volte provo un forte impulso a fare qualcosa di dannoso o sconveniente", a: "FALSO"},
+{q: "Mi piace andare a feste e trattenimenti dove c’è molto chiasso e divertimento", a: "FALSO"},
+{q: "Mi sono imbattuto in problemi che si potevano risolvere in così tanti modi da non riuscire a prendere una decisione", a: "FALSO"},
+{q: "Credo che le donne dovrebbero avere la stessa libertà sessuale degli uomini", a: "VERO"},
+{q: "Le più dure battaglie sono quelle che combatto con me stesso", a: "FALSO"},
+{q: "Voglio bene a mio padre, o (se Suo padre è morto) ho voluto bene a mio padre", a: "VERO"},
+{q: "Soffro poco o niente di spasmi o tremori muscolari", a: "VERO"},
+{q: "Non mi sembra di preoccuparmi per quello che mi succede", a: "VERO"},
+{q: "A volte quando non mi sento bene sono irritabile", a: "FALSO"},
+{q: "Molto spesso mi sembra di avere fatto qualcosa di sbagliato o di cattivo", a: "FALSO"},
+{q: "Sono quasi sempre contento", a: "VERO"},
+{q: "Vedo intorno a me cose, animali o persone che gli altri non vedono", a: "FALSO"},
+{q: "Mi sembra quasi sempre di avere come un senso di pesantezza alla testa o al naso", a: "FALSO"},
+{q: "Certe persone sono così prepotenti ed autoritarie che mi sento di fare il contrario di quanto richiedono, anche se so che hanno ragione", a: "FALSO"},
+{q: "Qualcuno ce l’ha con me", a: "FALSO"},
+{q: "Mai ho fatto qualcosa di pericoloso per il gusto di farlo", a: "VERO"},
+{q: "Spesso sento come se avessi un cerchio stretto attorno alla testa", a: "FALSO"},
+{q: "A volte mi arrabbio", a: "VERO"},
+{q: "Mi diverto di più ad una gara o ad una partita quando ci scommetto sopra", a: "FALSO"},
+{q: "La maggior parte della gente è onesta soprattutto per paura di essere scoperta", a: "FALSO"},
+{q: "A scuola, talvolta, sono stato mandato dal preside per cattiva condotta", a: "FALSO"},
+{q: "Il mio modo di parlare è lo stesso di sempre (né più veloce, né più lento, né male articolato, né più rauco)", a: "VERO"},
+{q: "A casa, non mi comporto così bene a tavola, come quando mangio fuori in compagnia", a: "FALSO"},
+{q: "Chiunque sia capace e abbia voglia di lavorare sodo ha buone possibilità di successo", a: "VERO"},
+{q: "Mi sembra di essere capace e sveglio quanto la maggior parte delle persone che mi circondano", a: "VERO"},
+{q: "La maggior parte delle persone userebbe mezzi sleali per avere un profitto o un vantaggio piuttosto che perderlo", a: "FALSO"},
+{q: "Ho molti disturbi di stomaco", a: "FALSO"},
+{q: "Mi piace il teatro", a: "FALSO"},
+{q: "So chi è responsabile della maggior parte dei miei guai", a: "VERO"},
+{q: "Qualche volta sono così fortemente attratto da oggetti personali di altri (come scarpe, guanti, ecc.) da aver voglia di toccarli o rubarli, anche se non so cosa farne", a: "FALSO"},
+{q: "La vista del sangue non mi fa impressione né mi fa star male", a: "VERO"},
+{q: "Spesso non riesco a capire perché sono così irritabile e di cattivo umore", a: "FALSO"},
+{q: "Mai ho vomitato o sputato sangue tossendo", a: "VERO"},
+{q: "Non mi preoccupo di prendere malattie", a: "VERO"},
+{q: "Mi piace raccogliere fiori o coltivare piante in casa", a: "FALSO"},
+{q: "Spesso trovo necessario prendere posizione per sostenere ciò che ritengo giusto", a: "VERO"},
+{q: "Mai ho compiuto pratiche sessuali insolite", a: "VERO"},
+{q: "A volte i miei pensieri si susseguono così rapidamente che non riesco ad esprimerli", a: "FALSO"},
+{q: "Se potessi entrare in un cinema senza pagare, con la certezza di non essere scoperto, probabilmente lo farei", a: "FALSO"},
+{q: "Di solito mi domando quale ragione nascosta può avere una persona per farmi una gentilezza", a: "FALSO"},
+{q: "Credo che la mia vita familiare sia piacevole come quella della maggior parte dei miei conoscenti", a: "VERO"},
+{q: "Credo che bisogna far rispettare rigorosamente la legge", a: "VERO"},
+{q: "Le critiche o i rimproveri mi feriscono moltissimo", a: "FALSO"},
+{q: "Mi piace cucinare", a: "FALSO"},
+{q: "La mia condotta personale è molto condizionata dal comportamento di coloro che mi circondano", a: "FALSO"},
+{q: "A volte mi sento proprio inutile", a: "FALSO"},
+{q: "Quando ero bambino facevo parte di un gruppo di amici in cui si cercava di rimanere uniti di fronte a qualsiasi tipo di avversità", a: "VERO"},
+{q: "Credo nella vita eterna", a: "FALSO"},
+{q: "Mi piacerebbe essere un soldato", a: "VERO"},
+{q: "A volte vorrei attaccar briga e fare a pugni con qualcuno", a: "FALSO"},
+{q: "Spesso ho perduto delle occasioni perché non riuscivo a decidermi abbastanza rapidamente", a: "FALSO"},
+{q: "Mi spazientisco se qualcuno mi interrompe, per chiedermi consigli o per altri motivi, quando sto facendo qualcosa di importante", a: "FALSO"},
+{q: "Avevo l’abitudine di tenere un diario", a: "FALSO"},
+{q: "Credo che si stia complottando contro di me", a: "FALSO"},
+{q: "Preferisco vincere piuttosto che perdere in un gioco", a: "VERO"},
+{q: "La maggior parte delle notti mi addormento senza che pensieri o idee particolari mi disturbino", a: "VERO"},
+{q: "Durante gli ultimi anni sono stato bene per la maggior parte del tempo", a: "VERO"},
+{q: "Mai ho avuto attacchi improvvisi o convulsioni", a: "VERO"},
+{q: "Non sto né aumentando né diminuendo di peso", a: "VERO"},
+{q: "Credo di essere pedinato", a: "FALSO"},
+{q: "Sento di essere stato spesso punito senza ragione", a: "FALSO"},
+{q: "Piango facilmente", a: "FALSO"},
+{q: "Mi riesce difficile capire bene come una volta quello che leggo", a: "FALSO"},
+{q: "Mai mi sono sentito bene come adesso nella mia vita", a: "FALSO"},
+{q: "Qualche volta la sommità della mia testa è molto sensibile", a: "FALSO"},
+{q: "A volte mi sento come se dovessi fare del male a me stesso o a qualcun altro", a: "FALSO"},
+{q: "Mi offendo se qualcuno mi inganna così abilmente che devo ammettere di essere stato preso in giro", a: "FALSO"},
+{q: "Non mi stanco facilmente", a: "VERO"},
+{q: "Mi piace conoscere persone importanti perché mi fa sentire importante", a: "FALSO"},
+{q: "Ho paura quando guardo giù da un luogo alto", a: "FALSO"},
+{q: "Non sarei preoccupato se qualcuno dei miei familiari si trovasse nei guai con la legge", a: "VERO"},
+{q: "Mai sono felice a meno che non sia in giro o in viaggio", a: "FALSO"},
+{q: "Non mi preoccupa ciò che gli altri pensano di me", a: "VERO"},
+{q: "Mi fa sentire a disagio mettermi in mostra ad una festa, anche se gli altri lo fanno", a: "FALSO"},
+{q: "Mai sono svenuto", a: "VERO"},
+{q: "Mi piaceva andare a scuola", a: "VERO"},
+{q: "Devo lottare frequentemente per non mostrare la mia timidezza", a: "FALSO"},
+{q: "Qualcuno ha cercato di avvelenarmi", a: "FALSO"},
+{q: "I serpenti mi fanno poca o nessuna impressione", a: "VERO"},
+{q: "Raramente o mai ho sofferto di vertigini", a: "VERO"},
+{q: "La mia memoria sembra buona", a: "VERO"},
+{q: "Il sesso mi preoccupa", a: "FALSO"},
+{q: "Mi riesce difficile attaccare discorso con persone che ho appena conosciuto", a: "FALSO"},
+{q: "Ho avuto periodi in cui svolgevo delle attività senza poi ricordarmi ciò che avevo fatto", a: "FALSO"},
+{q: "Quando mi annoio mi piace trovare qualcosa di eccitante da fare", a: "FALSO"},
+{q: "Ho paura di impazzire", a: "FALSO"},
+{q: "Sono contrario a fare l’elemosina ai mendicanti", a: "FALSO"},
+{q: "Spesso mi accorgo che le mani mi tremano quando provo a fare qualcosa", a: "VERO"},
+{q: "Posso leggere a lungo senza stancarmi gli occhi", a: "VERO"},
+{q: "Mi piace studiare e leggere argomenti riguardanti il mio lavoro", a: "VERO"},
+{q: "Molto spesso mi sento fiacco", a: "FALSO"},
+{q: "Poche volte ho mal di testa", a: "VERO"},
+{q: "Le mie mani non sono diventate pesanti o impacciate nei movimenti", a: "VERO"},
+{q: "Talvolta quando sono imbarazzato, comincio a sudare e ciò mi dà molto fastidio", a: "FALSO"},
+{q: "Non ho difficoltà nel mantenere l’equilibrio mentre cammino", a: "VERO"},
+{q: "C’è qualcosa che non va nella mia mente", a: "FALSO"},
+{q: "Non soffro di attacchi di febbre da fieno o di asma", a: "VERO"},
+{q: "Ho avuto crisi in cui non potevo controllare i miei movimenti o la parola, ma capivo quello che succedeva intorno a me", a: "FALSO"},
+{q: "Non mi piace ogni persona che conosco", a: "FALSO"},
+{q: "Sogno ad occhi aperti molto di rado", a: "VERO"},
+{q: "Vorrei non essere così timido", a: "FALSO"},
+{q: "Non mi disturba maneggiare il denaro", a: "VERO"},
+{q: "Se fossi un giornalista mi piacerebbe scrivere cronache teatrali", a: "FALSO"},
+{q: "Mi piacciono diversi tipi di gioco e svago", a: "VERO"},
+{q: "Mi piace flirtare, amoreggiare", a: "VERO"},
+{q: "I miei familiari mi trattano più da bambino che da adulto", a: "FALSO"},
+{q: "Mi piacerebbe fare il giornalista", a: "FALSO"},
+{q: "Mia madre è una buona persona, o (se Sua madre è morta) è stata una buona persona", a: "VERO"},
+{q: "Quando cammino sto molto attento a non calpestare le fessure sul marciapiede", a: "FALSO"},
+{q: "Mai ho avuto sfoghi della pelle che mi abbiano preoccupato", a: "VERO"},
+{q: "C’è pochissimo affetto e solidarietà nella mia famiglia, in confronto alle altre famiglie", a: "FALSO"},
+{q: "Sono spesso preoccupato per qualcosa", a: "FALSO"},
+{q: "Penso che mi piacerebbe lavorare come costruttore edile", a: "FALSO"},
+{q: "Spesso sento voci senza sapere da dove provengono", a: "FALSO"},
+{q: "Mi piace la scienza", a: "FALSO"},
+{q: "Non mi è difficile chiedere aiuto ai miei amici anche se non posso contraccambiarli", a: "VERO"},
+{q: "Mi piace molto andare a caccia", a: "FALSO"},
+{q: "I miei genitori spesso si opponevano al tipo di gente che frequentavo", a: "FALSO"},
+{q: "Qualche volta faccio dei pettegolezzi", a: "VERO"},
+{q: "Il mio udito mi sembra buono come quello della maggior parte della gente", a: "VERO"},
+{q: "Qualcuno della mia famiglia ha abitudini che mi irritano moltissimo", a: "FALSO"},
+{q: "A volte sento di poter prendere decisioni con un’insolita facilità", a: "FALSO"},
+{q: "Mi piacerebbe far parte di molti club, circoli o associazioni", a: "FALSO"},
+{q: "Raramente (o mai) mi sento battere forte il cuore o mancare il respiro", a: "VERO"},
+{q: "Mi piace parlare di sesso", a: "FALSO"},
+{q: "Mi piace visitare luoghi dove non sono mai stato prima", a: "VERO"},
+{q: "Mi sono ispirato ad un programma di vita basato sul dovere e l’ho seguito scrupolosamente", a: "VERO"},
+{q: "Talvolta ho ostacolato persone che tentavano di fare qualcosa non perché me ne importasse molto, ma per una questione di principio", a: "FALSO"},
+{q: "Mi arrabbio facilmente e poi mi passa presto", a: "FALSO"},
+{q: "Sono stato del tutto indipendente e libero dal controllo familiare", a: "FALSO"},
+{q: "Passo molto tempo a rimuginare", a: "FALSO"},
+{q: "Qualcuno ha cercato di derubarmi", a: "FALSO"},
+{q: "I miei parenti hanno quasi tutti simpatia per me", a: "VERO"},
+{q: "Ho periodi di tale irrequietezza da non poter stare a lungo seduto", a: "FALSO"},
+{q: "Ho avuto delle delusioni amorose", a: "FALSO"},
+{q: "Mai mi preoccupo del mio aspetto", a: "FALSO"},
+{q: "Spesso sogno cose che è meglio che tenga per me", a: "FALSO"},
+{q: "Ai bambini si dovrebbero insegnare le cose più importanti in materia sessuale", a: "FALSO"},
+{q: "Non credo di essere più nervoso degli altri", a: "VERO"},
+{q: "Raramente, o mai, ho dolori fisici", a: "VERO"},
+{q: "Il mio modo di agire si presenta ad essere frainteso dagli altri", a: "FALSO"},
+{q: "A volte, senza nessuna ragione o perfino quando le cose mi vanno male, mi sento così eccitato e felice da “toccare il cielo con un dito”", a: "FALSO"},
+{q: "Non critico le persone che cercano di impadronirsi di tutto quello che possono prendere in questo mondo", a: "FALSO"},
+{q: "Ci sono persone che tentano di rubarmi i pensieri e le idee", a: "FALSO"},
+{q: "Ho avuto dei momenti di vuoto, in cui le mie attività venivano interrotte e non capivo che cosa succedeva intorno a me", a: "FALSO"},
+{q: "Posso essere amico di persone che fanno cose che io ritengo sbagliate", a: "VERO"},
+{q: "Mi piace far parte di un gruppo di persone che si fanno scherzi tra di loro", a: "FALSO"},
+{q: "Qualche volta alle elezioni voto per gente di cui so molto poco", a: "FALSO"},
+{q: "Trovo difficoltà nel cominciare a fare le cose", a: "FALSO"},
+{q: "Credo di essere perseguitato dal destino", a: "FALSO"},
+{q: "A scuola imparavo lentamente", a: "FALSO"},
+{q: "Se fossi un pittore mi piacerebbe disegnare fiori", a: "FALSO"},
+{q: "Non mi preoccupa il fatto di non avere un aspetto migliore", a: "VERO"},
+{q: "Sudo molto facilmente anche nelle giornate fresche", a: "FALSO"},
+{q: "Ho piena fiducia in me stesso", a: "VERO"},
+{q: "A volte è stato per me impossibile trattenermi dal rubare o portar via qualcosa in un negozio", a: "FALSO"},
+{q: "È meglio non fidarsi di nessuno", a: "FALSO"},
+{q: "Almeno una volta alla settimana, o più spesso, divento molto eccitato", a: "FALSO"},
+{q: "In compagnia mi riesce difficile trovare argomenti di conversazione adatti alle circostanze", a: "FALSO"},
+{q: "Qualcosa di emozionante o di eccitante mi solleva quasi sempre il morale quando sono triste", a: "FALSO"},
+{q: "Quando esco di casa non sono preso dal dubbio di aver lasciato porta o finestra aperte", a: "VERO"},
+{q: "Credo che i miei peccati siano imperdonabili", a: "FALSO"},
+{q: "Una o più zone della mia pelle sono insensibili", a: "FALSO"},
+{q: "Non biasimo una persona che si approfitta degli altri se questi la lasciano fare", a: "FALSO"},
+{q: "Ho la vista ancora buona come nel passato", a: "VERO"},
+{q: "A volte sono rimasto così colpito dall’abilità di qualche criminale, che ho sperato che gli andasse bene", a: "FALSO"},
+{q: "Spesso mi è sembrato che sconosciuti mi osservassero con occhio critico", a: "FALSO"},
+{q: "Ogni cosa ha per me lo stesso sapore", a: "FALSO"},
+{q: "Ogni giorno bevo un enorme quantità di acqua", a: "FALSO"},
+{q: "La maggior parte delle persone si fa degli amici perché possono risultare utili", a: "FALSO"},
+{q: "Raramente mi capita di sentire ronzii o rumore nelle orecchie", a: "VERO"},
+{q: "Talvolta mi capita di odiare qualcuno della mia famiglia al quale di solito voglio bene", a: "FALSO"},
+{q: "Se fossi un giornalista mi piacerebbe molto fare il cronista sportivo", a: "FALSO"},
+{q: "Posso dormire durante il giorno ma non di notte", a: "FALSO"},
+{q: "Sono sicuro che si fanno chiacchiere su di me", a: "FALSO"},
+{q: "Qualche volta le barzellette sporche mi divertono", a: "VERO"},
+{q: "Sono molto meno pauroso dei miei amici", a: "VERO"},
+{q: "In un gruppo di persone non mi sentirei imbarazzato se fossi sollecitato ad iniziare una discussione o esprimere un’opinione su un argomento che conosco bene", a: "VERO"},
+{q: "Sono sempre disgustato dalla legge quando un criminale viene assolto grazie all’abilità di un avvocato", a: "FALSO"},
+{q: "Ho fatto uso eccessivo di bevande alcoliche", a: "FALSO"},
+{q: "Di solito evito di parlare per primo agli altri", a: "FALSO"},
+{q: "Mai ho avuto guai con la legge", a: "VERO"},
+{q: "Ho dei periodi in cui mi sento insolitamente allegro senza particolari motivi", a: "FALSO"},
+{q: "Vorrei non essere infastidito da pensieri relativi al sesso", a: "FALSO"},
+{q: "Se parecchie persone si trovano nei pasticci, la miglior cosa che possano fare è di mettersi d’accordo su una versione dei fatti e mantenerla in ogni caso", a: "FALSO"},
+{q: "Non mi disturba in modo particolare vedere soffrire gli animali", a: "FALSO"},
+{q: "Credo di provare sentimenti più intensi della maggior parte della gente", a: "FALSO"},
+{q: "In nessun periodo della mia vita mi è piaciuto giocare con le bambole", a: "FALSO"},
+{q: "La vita è quasi sempre una fatica per me", a: "FALSO"},
+{q: "Sono così sensibile riguardo a certi argomenti da non poterne parlare", a: "FALSO"},
+{q: "A scuola mi era molto difficile parlare davanti alla classe", a: "FALSO"},
+{q: "Voglio bene a mia madre, o (se Sua madre è morta) volevo bene a mia madre", a: "VERO"},
+{q: "Mi sento spesso solo, anche quando sono in mezzo alla gente", a: "FALSO"},
+{q: "Ottengo dagli altri tutta la simpatia che merito", a: "VERO"},
+{q: "Mi rifiuto di partecipare ad alcuni giochi perché non ci riesco bene", a: "FALSO"},
+{q: "Mi sembra di fare amicizia rapidamente come gli altri", a: "VERO"},
+{q: "Mi dà fastidio avere gente intorno", a: "FALSO"},
+{q: "Mi è stato detto che cammino durante il sonno", a: "FALSO"},
+{q: "Chi tenta gli altri lasciando incustodite cose di valore è da biasimare quasi quanto chi le ruba", a: "FALSO"},
+{q: "Penso che chiunque direbbe una bugia per tirarsi fuori dai guai", a: "FALSO"},
+{q: "Sono più sensibile della maggior parte delle altre persone", a: "FALSO"},
+{q: "La maggior parte della gente, in fondo, si scomoda malvolentieri per aiutare il prossimo", a: "FALSO"},
+{q: "Molti dei miei sogni riguardano il sesso", a: "FALSO"},
+{q: "I miei genitori e i miei familiari trovano in me più difetti di quanto dovrebbero", a: "FALSO"},
+{q: "Mi imbarazzo facilmente", a: "FALSO"},
+{q: "Sono preoccupato per questioni d’affari o di denaro", a: "FALSO"},
+{q: "Mai sono stato innamorato di qualcuno", a: "FALSO"},
+{q: "Qualcuno della mia famiglia ha fatto cose che mi hanno spaventato", a: "FALSO"},
+{q: "Non sogno quasi mai", a: "FALSO"},
+{q: "Spesso sul collo mi vengono delle macchie rosse", a: "FALSO"},
+{q: "Mai ho avuto paralisi o insolita debolezza in qualche muscolo", a: "VERO"},
+{q: "A volte perdo o cambio la voce anche se non ho il raffreddore", a: "FALSO"},
+{q: "Mia madre o mio padre mi hanno spesso costretto ad obbedire anche quando pensavo che fosse irragionevole", a: "FALSO"},
+{q: "A volte sento strani odori", a: "FALSO"},
+{q: "Mi è impossibile mantenere l’attenzione su una data cosa", a: "FALSO"},
+{q: "Ho delle buone ragioni per essere geloso di uno o più dei miei familiari", a: "FALSO"},
+{q: "Quasi sempre sto in ansia per qualcuno o per qualcosa", a: "FALSO"},
+{q: "Perdo facilmente la pazienza con le persone", a: "FALSO"},
+{q: "Quasi sempre vorrei essere morto", a: "FALSO"},
+{q: "A volte sono così eccitato che mi riesce difficile addormentarmi", a: "FALSO"},
+{q: "Ho avuto certamente più motivi di preoccupazione di quanti me ne spettassero", a: "FALSO"},
+{q: "A nessuno importa molto di ciò che accade al prossimo", a: "FALSO"},
+{q: "A volte il mio udito è così sensibile che mi dà fastidio", a: "FALSO"},
+{q: "Dimentico subito quello che gli altri mi dicono", a: "FALSO"},
+{q: "Di solito mi devo fermare a pensarci sopra prima di fare qualcosa, anche se di poca importanza", a: "FALSO"},
+{q: "Spesso attraverso la strada per evitare di incontrare qualcuno che ho visto", a: "FALSO"},
+{q: "Spesso ho la sensazione come se le cose fossero irreali", a: "FALSO"},
+{q: "La sola parte interessante dei giornali è quella umoristica", a: "FALSO"},
+{q: "Ho l’abitudine di contare oggetti di nessuna importanza, come le lampadine delle insegne luminose e così via", a: "FALSO"},
+{q: "Non ho nemici che vogliano veramente farmi del male", a: "VERO"},
+{q: "In genere diffido delle persone che si dimostrano più amichevoli di quanto mi sarei aspettato", a: "FALSO"},
+{q: "Ho pensieri strani ed insoliti", a: "FALSO"},
+{q: "Divento ansioso e turbato quando devo allontanarmi da casa per un breve viaggio", a: "FALSO"},
+{q: "Di solito mi aspetto di riuscire in quello che faccio", a: "VERO"},
+{q: "Odo strane cose quando sono solo", a: "FALSO"},
+{q: "Sono stato spaventato da persone o cose, pur sapendo che non mi potevano fare del male", a: "FALSO"},
+{q: "Non mi preoccupa entrare da solo in una stanza dove ci sono già delle persone che stanno conversando", a: "VERO"},
+{q: "Ho paura di usare coltelli o altri oggetti molto taglienti o appuntiti", a: "FALSO"},
+{q: "Qualche volta provo piacere a far del male alle persone cui voglio bene", a: "FALSO"},
+{q: "Riesco facilmente a intimorire gli altri e qualche volta lo faccio per il gusto di farlo", a: "FALSO"},
+{q: "Ho più difficoltà degli altri a concentrarmi", a: "FALSO"},
+{q: "Parecchie volte ho rinunciato a fare qualcosa perché credevo di non esserne capace", a: "FALSO"},
+{q: "Mi vengono in mente parole cattive o perfino terribili e non riesco a liberarmene", a: "FALSO"},
+{q: "A volte pensieri di poca o nessuna importanza si fissano nella mia mente e mi disturbano per giorni interi", a: "FALSO"},
+{q: "Quasi ogni giorno capita qualcosa che mi spaventa", a: "FALSO"},
+{q: "A volte mi sento pieno di energie", a: "FALSO"},
+{q: "Ho la tendenza a vedere le cose più difficili di quello che sono", a: "FALSO"},
+{q: "A volte ho provato piacere se qualcuno cui volevo bene mi faceva del male", a: "FALSO"},
+{q: "La gente dice cose offensive e volgari sul mio conto", a: "FALSO"},
+{q: "Mi sento a disagio nei luoghi chiusi", a: "FALSO"},
+{q: "Non mi preoccupo particolarmente di come sono o di come sembro", a: "VERO"},
+{q: "Qualcuno controlla la mia mente", a: "FALSO"},
+{q: "Alle feste di solito resto in disparte, solo o tutt’al più con un’altra persona, piuttosto che mischiarmi alla gente", a: "FALSO"},
+{q: "La gente spesso mi delude", a: "FALSO"},
+{q: "Qualche volta mi è sembrato che le difficoltà si accumulassero talmente da non poterle superare", a: "FALSO"},
+{q: "Mi piace andare a ballare", a: "FALSO"},
+{q: "In certi periodi la mia mente sembra lavorare più lentamente del solito", a: "FALSO"},
+{q: "In treno, in autobus, ecc. parlo spesso con estranei", a: "FALSO"},
+{q: "Mi piacciono i bambini", a: "VERO"},
+{q: "Mi piace giocare d’azzardo puntando piccole somme", a: "FALSO"},
+{q: "Se si presentasse l’occasione potrei fare cose molto vantaggiose per l’umanità", a: "VERO"},
+{q: "Ho spesso incontrato persone ritenute particolarmente competenti, mentre in realtà non lo erano più di me", a: "FALSO"},
+{q: "Mi sento come fallito quando vengo a sapere che qualcuno, che conosco molto bene, ha avuto successo", a: "FALSO"},
+{q: "Spesso penso: “vorrei tornare ad essere bambino”", a: "FALSO"},
+{q: "Non sono mai così felice come quando sono solo", a: "FALSO"},
+{q: "Se si presentasse l’occasione potrei essere un buon capo", a: "VERO"},
+{q: "Le barzellette sporche mi imbarazzano", a: "FALSO"},
+{q: "Generalmente la gente esige più rispetto per i propri diritti di quanto sia disposta a concederne", a: "FALSO"},
+{q: "Mi piacciono gli intrattenimenti e le feste proprio per stare in mezzo alla gente", a: "FALSO"},
+{q: "Cerco di ricordarmi le barzellette per poterle raccontare ad altri", a: "FALSO"},
+{q: "Una o più volte nella mia vita ho avuto l’impressione che qualcuno mi costringesse, ipnotizzandomi, a compiere determinate azioni", a: "FALSO"},
+{q: "Mi riesce difficile interrompere, anche per breve tempo, un lavoro iniziato", a: "FALSO"},
+{q: "Molto spesso mi tengo fuori dai pettegolezzi e dalle chiacchiere del gruppo a cui appartengo", a: "VERO"},
+{q: "Ho trovato spesso delle persone invidiose delle mie buone idee, solo perché non ci avevano pensato prima", a: "FALSO"},
+{q: "Mi piace l’animazione della folla", a: "FALSO"},
+{q: "Non mi preoccupa incontrare estranei", a: "VERO"},
+{q: "Qualcuno ha cercato di influenzare la mia mente", a: "FALSO"},
+{q: "Ricordo di aver fatto finta di essere ammalato per evitare qualche impegno", a: "FALSO"},
+{q: "Le mie preoccupazioni sembrano svanire quando mi trovo in un gruppo di amici pieni di vita", a: "VERO"},
+{q: "Mi vien voglia di rinunciare subito a quello che sto facendo quando le cose vanno male", a: "FALSO"},
+{q: "Mi piace che la gente sappia come la penso", a: "VERO"},
+{q: "Ho avuto periodi in cui mi sentivo così pieno di energia che per alcuni giorni non avevo bisogno di dormire", a: "FALSO"},
+{q: "Ogni volta che è possibile evito di stare in mezzo alla folla", a: "FALSO"},
+{q: "Tendo a tirarmi indietro di fronte a situazioni critiche o difficili", a: "FALSO"},
+{q: "Di solito rinuncio ad eseguire un progetto se gli altri pensano che non ne valga la pena", a: "FALSO"},
+{q: "Mi piacciono le feste e i trattenimenti", a: "VERO"},
+{q: "Ho spesso desiderato di essere di sesso opposto al mio", a: "FALSO"},
+{q: "Non mi arrabbio facilmente", a: "VERO"},
+{q: "Nel passato ho compiuto delle azioni cattive di cui non ho parlato a nessuno", a: "FALSO"},
+{q: "La maggior parte delle persone ricorrerebbe a mezzi illeciti per farsi strada nella vita", a: "FALSO"},
+{q: "Divento nervoso se le persone mi fanno domande personali", a: "FALSO"},
+{q: "Non mi sento di fare progetti per il futuro", a: "FALSO"},
+{q: "Non sono contento di me stesso, così come sono", a: "FALSO"},
+{q: "Mi arrabbio quando i miei amici o i miei familiari mi danno consigli su come dovrei vivere la mia vita", a: "FALSO"},
+{q: "Sono stato picchiato spesso quando ero bambino", a: "FALSO"},
+{q: "Provo fastidio quando le persone parlano bene di me", a: "FALSO"},
+{q: "Non mi piace sentire gli altri che esprimono la loro opinione sulla vita", a: "FALSO"},
+{q: "Sono spesso in serio disaccordo con le persone che mi sono affettivamente vicine", a: "FALSO"},
+{q: "Quando le cose vanno realmente male, so che posso contare sull’aiuto della mia famiglia", a: "VERO"},
+{q: "Mi piaceva fare il gioco della “famiglia”, quando ero bambino", a: "FALSO"},
+{q: "Non ho paura del fuoco", a: "VERO"},
+{q: "A volte mi sono tenuto lontano da una persona, perché temevo di fare o dire cose di cui dopo mi sarei potuto pentire", a: "FALSO"},
+{q: "Riesco ad esprimere i miei veri sentimenti solo quando bevo", a: "FALSO"},
+{q: "Molto raramente ho momenti di malinconia o tristezza", a: "VERO"},
+{q: "Mi viene spesso detto che sono una testa calda", a: "FALSO"},
+{q: "Vorrei smettere di preoccuparmi per cose che ho detto e che possono aver ferito i sentimenti di qualcuno", a: "FALSO"},
+{q: "Mi sento incapace di dire tutto di me a chiunque", a: "FALSO"},
+{q: "I fulmini sono una delle mie paure", a: "FALSO"},
+{q: "Mi piace lasciare la gente all’oscuro di quello che sto per fare", a: "FALSO"},
+{q: "Spesso i miei progetti mi sono sembrati così pieni di difficoltà da dovervi rinunciare", a: "FALSO"},
+{q: "Ho paura di stare solo al buio", a: "FALSO"},
+{q: "Spesso sono rimasto male per essere stato frainteso, quando ho cercato di evitare che qualcuno sbagliasse", a: "FALSO"},
+{q: "Le bufere mi terrorizzano", a: "FALSO"},
+{q: "Spesso chiedo consiglio agli altri", a: "FALSO"},
+{q: "Il futuro è troppo incerto perché una persona possa fare seri progetti per l’avvenire", a: "FALSO"},
+{q: "Spesso, anche se tutto mi va bene, sento che non mi importa di niente", a: "FALSO"},
+{q: "Non ho paura dell’acqua", a: "VERO"},
+{q: "Spesso, prima di decidere qualcosa, devo dormirci sopra", a: "FALSO"},
+{q: "Spesso la gente ha frainteso le mie intenzioni quando tentavo di correggerla e aiutarla", a: "FALSO"},
+{q: "Non ho difficoltà ad inghiottire", a: "VERO"},
+{q: "Di solito sono calmo e non mi agito facilmente", a: "VERO"},
+{q: "Mi piacerebbe proprio battere un imbroglione con i suoi stessi mezzi", a: "FALSO"},
+{q: "Merito severe punizioni per i miei peccati", a: "FALSO"},
+{q: "Le delusioni mi colpiscono così intensamente da non potermele togliere dalla mente", a: "FALSO"},
+{q: "Mi dà fastidio se qualcuno mi osserva mentre sto facendo un lavoro, anche se so di poterlo fare bene", a: "FALSO"},
+{q: "Spesso sono così seccato quando qualcuno tenta di passarmi avanti in una coda, che glielo dico apertamente", a: "VERO"},
+{q: "Talvolta penso di essere un buono a nulla", a: "FALSO"},
+{q: "Da ragazzo spesso non andavo a scuola anche quando ci sarei dovuto andare", a: "FALSO"},
+{q: "Uno o più dei miei familiari sono molto nervosi", a: "FALSO"},
+{q: "A volte ho dovuto trattare male persone sgarbate o fastidiose", a: "FALSO"},
+{q: "Mi preoccupo abbastanza per le disgrazie che potrebbero capitare", a: "FALSO"},
+{q: "Ho delle convinzioni politiche ben radicate", a: "FALSO"},
+{q: "Mi piacerebbe fare il pilota di auto da corsa", a: "FALSO"},
+{q: "E’ giusto aggirare la legge, purché non la si violi effettivamente", a: "FALSO"},
+{q: "Alcune persone mi sono così antipatiche che dentro di me provo piacere quando vengono punite per qualcosa che hanno fatto", a: "FALSO"},
+{q: "Dover aspettare mi rende nervoso", a: "FALSO"},
+{q: "Mi può capitare di rinunciare a fare qualcosa, se gli altri mi dicono che la sto facendo male", a: "FALSO"},
+{q: "Quando ero giovane ero pieno di entusiasmo", a: "VERO"},
+{q: "Sono solito mettercela tutta pur di averla vinta con chi mi contrasta", a: "VERO"},
+{q: "Mi dà fastidio la gente che mi osserva quando mi trovo fuori, per strada, nei negozi, ecc.", a: "FALSO"},
+{q: "L’uomo che si è maggiormente occupato di me quando ero bambino (padre, patrigno, ecc.) era molto severo con me", a: "FALSO"},
+{q: "Mi piaceva giocare a “campana” e saltare alla corda", a: "FALSO"},
+{q: "Mai ho avuto visioni", a: "VERO"},
+{q: "Ho cambiato parere diverse volte su quale lavoro fare nella vita", a: "FALSO"},
+{q: "Evito sempre di prendere medicine o sonniferi senza la prescrizione del medico", a: "VERO"},
+{q: "Spesso mi dispiace di essere così irritabile e di cattivo umore", a: "FALSO"},
+{q: "A scuola i miei voti in condotta usualmente erano brutti", a: "FALSO"},
+{q: "Mi sento particolarmente attratto dal fuoco", a: "FALSO"},
+{q: "Quando sono messo alle strette dico quella parte di verità che probabilmente non mi danneggia", a: "FALSO"},
+{q: "Se mi trovassi nei guai con degli amici e fossimo tutti ugualmente colpevoli, preferirei prendere io tutta la colpa, piuttosto che tradirli", a: "FALSO"},
+{q: "Spesso ho paura del buio", a: "FALSO"},
+{q: "Quando l’uomo è con una donna generalmente pensa a lei da un punto di vista sessuale", a: "FALSO"},
+{q: "Di solito parlo molto chiaramente a quelli che sto cercando di correggere o migliorare", a: "VERO"},
+{q: "Sono molto preoccupato dall’idea di un terremoto", a: "FALSO"},
+{q: "Mi entusiasmo completamente per una buona idea", a: "VERO"},
+{q: "Di solito cerco di arrangiarmi da solo piuttosto che chiedere a qualcuno di mostrarmi come si fa", a: "FALSO"},
+{q: "Mi fa paura trovarmi in uno stanzino o in un altro luogo chiuso e stretto", a: "FALSO"},
+{q: "Devo ammettere che talvolta mi sono preoccupato eccessivamente per cose che in realtà non erano importanti", a: "FALSO"},
+{q: "Non cerco di nascondere la scarsa considerazione o la commiserazione che provo per la gente, per evitare che si renda conto dei miei sentimenti", a: "VERO"},
+{q: "Sono una persona molto nervosa", a: "FALSO"},
+{q: "Ho spesso lavorato con dei superiori che si prendevano il merito di un buon lavoro e invece addossavano ai loro dipendenti la responsabilità degli errori", a: "FALSO"},
+{q: "Qualche volta mi è difficile far valere i miei diritti perché sono molto riservato", a: "FALSO"},
+{q: "Ho paura o disgusto dello sporco", a: "FALSO"},
+{q: "Ho un mio mondo di fantasie di cui non parlo a nessuno", a: "FALSO"},
+{q: "Qualcuno della mia famiglia ha un carattere irascibile", a: "FALSO"},
+{q: "Sono incapace di fare qualcosa di buono", a: "FALSO"},
+{q: "Spesso mi sento in colpa perché fingo di essere più dispiaciuto per qualcosa di quanto lo sia veramente", a: "FALSO"},
+{q: "Di solito difendo con forza le mie opinioni", a: "VERO"},
+{q: "Non ho paura dei ragni", a: "VERO"},
+{q: "Il futuro mi sembra senza speranza", a: "FALSO"},
+{q: "I miei familiari e i miei parenti stretti vanno molto d’accordo", a: "VERO"},
+{q: "Mi piacerebbe portare vestiti costosi", a: "FALSO"},
+{q: "La gente può farmi cambiare opinione facilmente, anche quando ho già preso una decisione", a: "FALSO"},
+{q: "Certi animali mi innervosiscono", a: "FALSO"},
+{q: "Sono capace di sopportare il dolore quanto gli altri", a: "VERO"},
+{q: "Diverse volte sono stato l’ultimo a darmi per vinto nel cercare di fare qualcosa", a: "VERO"},
+{q: "Mi arrabbio quando qualcuno mi mette fretta", a: "FALSO"},
+{q: "Non ho paura dei topi", a: "VERO"},
+{q: "Parecchie volte alla settimana sento come se stesse per accadere qualcosa di spaventoso", a: "FALSO"},
+{q: "Assai spesso mi sento stanco", a: "FALSO"},
+{q: "Mi piace riparare le serrature", a: "FALSO"},
+{q: "Qualche volta sono sicuro che gli altri sanno quello che sto pensando", a: "FALSO"},
+{q: "Mi piacciono le letture di tipo scientifico", a: "FALSO"},
+{q: "Ho paura di stare da solo in luoghi vasti e aperti", a: "FALSO"},
+{q: "A volte mi sento come se stessi per andare in pezzi", a: "FALSO"},
+{q: "Molte persone sono colpevoli di cattiva condotta sessuale", a: "FALSO"},
+{q: "Mi sono spesso spaventato nel cuore della notte", a: "FALSO"},
+{q: "Sono molto preoccupato perché dimentico dove metto le cose", a: "FALSO"},
+{q: "Quando ero bambino, la persona alla quale ero più attaccato e che ammiravo di più era una donna (madre, sorella, zia, nonna, o altra donna)", a: "FALSO"},
+{q: "Mi piacciono di più i racconti di avventura che le storie d’amore", a: "VERO"},
+{q: "Spesso divento confuso e mi dimentico quello che voglio dire", a: "FALSO"},
+{q: "Sono molto goffo e maldestro", a: "FALSO"},
+{q: "Mi piace molto praticare sport violenti (come per esempio il rugby)", a: "FALSO"},
+{q: "Odio tutta la mia famiglia", a: "FALSO"},
+{q: "Certe persone pensano che sia difficile riuscire a conoscermi", a: "FALSO"},
+{q: "Passo la maggior parte del mio tempo libero da solo", a: "FALSO"},
+{q: "Quando la gente fa qualcosa che mi fa arrabbiare, faccio in modo che lo sappia", a: "VERO"},
+{q: "Di solito ho molta difficoltà a decidere che cosa fare", a: "FALSO"},
+{q: "La gente non mi trova attraente", a: "FALSO"},
+{q: "Le persone non sono molto gentili con me", a: "FALSO"},
+{q: "Spesso sento di non essere buono come gli altri", a: "FALSO"},
+{q: "Sono molto ostinato", a: "VERO"},
+{q: "Mi è piaciuto fumare marijuana", a: "FALSO"},
+{q: "La malattia mentale è un segno di debolezza", a: "FALSO"},
+{q: "Ho un problema di droga o di alcool", a: "FALSO"},
+{q: "Fantasmi o spiriti possono influenzare le persone sia nel bene che nel male", a: "FALSO"},
+{q: "Mi sento perso quando devo prendere qualche decisione importante", a: "FALSO"},
+{q: "Cerco sempre di essere gradevole anche quando gli altri sono arrabbiati o polemici", a: "VERO"},
+{q: "Quando ho un problema mi è di aiuto parlarne con qualcuno", a: "VERO"},
+{q: "Gli obiettivi principali che mi sono posto nella vita sono alla mia portata", a: "VERO"},
+{q: "Credo che la gente dovrebbe tenere per sé i propri problemi", a: "FALSO"},
+{q: "Non mi sento sotto pressione o stress in questi giorni", a: "VERO"},
+{q: "Mi dà molto fastidio pensare di fare dei cambiamenti nella mia vita", a: "FALSO"},
+{q: "I miei maggiori problemi sono causati dal comportamento di qualcuno che mi è molto vicino", a: "FALSO"},
+{q: "Detesto andare dai medici anche quando sono malato", a: "FALSO"},
+{q: "Sebbene non sia felice della vita che conduco, non c’è niente che io possa fare", a: "FALSO"},
+{q: "Parlare dei problemi e delle preoccupazioni con qualcuno è spesso più utile che prendere medicine", a: "VERO"},
+{q: "Ho delle abitudini che sono veramente dannose", a: "FALSO"},
+{q: "Quando è necessario risolvere dei problemi, in genere lascio che se ne occupino gli altri", a: "FALSO"},
+{q: "Riconosco di avere dei difetti che non riuscirò a correggere", a: "FALSO"},
+{q: "Non ne posso più di quello che devo fare tutti i giorni e vorrei soltanto lasciar perdere tutto", a: "FALSO"},
+{q: "Recentemente ho pensato di suicidarmi", a: "FALSO"},
+{q: "Generalmente mi irrito molto quando la gente interrompe il mio lavoro", a: "FALSO"},
+{q: "Spesso sento di poter leggere nella mente degli altri", a: "FALSO"},
+{q: "Dover prendere decisioni importanti mi rende nervoso", a: "FALSO"},
+{q: "Mi dicono che mangio troppo velocemente", a: "FALSO"},
+{q: "Una volta alla settimana, o più spesso, sono alticcio, fatto o ubriaco", a: "FALSO"},
+{q: "Nella mia vita ho avuto una perdita tragica e so che non riuscirò mai a superarla", a: "FALSO"},
+{q: "A volte mi arrabbio talmente da non capire più cosa mi sta succedendo", a: "FALSO"},
+{q: "Quando le persone mi chiedono qualcosa mi è difficile dire di no", a: "FALSO"},
+{q: "Mai sono così felice come quando sono solo", a: "FALSO"},
+{q: "La mia vita è vuota e senza significato", a: "FALSO"},
+{q: "Mi è difficile mantenere un lavoro", a: "FALSO"},
+{q: "Ho fatto un sacco di grossi errori nella mia vita", a: "FALSO"},
+{q: "Mi arrabbio con me stesso perché sono così arrendevole con gli altri", a: "FALSO"},
+{q: "Ultimamente ho pensato molto al suicidio", a: "FALSO"},
+{q: "Mi piace prendere decisioni e assegnare dei compiti ad altri", a: "VERO"},
+{q: "Anche senza la mia famiglia so che ci sarà sempre qualcuno che si prenderà cura di me", a: "FALSO"},
+{q: "Detesto fare la coda al cinema, al ristorante o per un avvenimento sportivo", a: "FALSO"},
+{q: "Nessuno lo sa, ma ho tentato di uccidermi", a: "FALSO"},
+{q: "Tutto sta andando troppo velocemente intorno a me", a: "FALSO"},
+{q: "So di essere un peso per gli altri", a: "FALSO"},
+{q: "Dopo una brutta giornata di solito ho bisogno di bere qualche bicchierino per rilassarmi", a: "FALSO"},
+{q: "Gran parte delle difficoltà che ho sono dovute alla sfortuna", a: "FALSO"},
+{q: "A volte mi sembra di non poter smettere di parlare", a: "FALSO"},
+{q: "A volte mi taglio o mi procuro delle ferite volutamente, senza sapere perché", a: "FALSO"},
+{q: "Mi impegno molte ore anche se il mio lavoro non lo richiede", a: "VERO"},
+{q: "In genere mi sento meglio dopo un bel pianto", a: "VERO"},
+{q: "Dimentico dove lascio le cose", a: "FALSO"},
+{q: "Se potessi vivere di nuovo la mia vita, non la cambierei molto", a: "VERO"},
+{q: "Mi irrito molto quando le persone su cui faccio affidamento non svolgono in tempo il loro lavoro", a: "FALSO"},
+{q: "Se mi arrabbio sono sicuro che mi verrà mal di testa", a: "FALSO"},
+{q: "Mi piace condurre una trattativa difficile", a: "FALSO"},
+{q: "La maggior parte degli uomini è infedele alla propria moglie di quando in quando", a: "FALSO"},
+{q: "Ultimamente ho perso la voglia di risolvere i miei problemi", a: "FALSO"},
+{q: "Quando ero ubriaco, mi è capitato di arrabbiarmi e rompere mobili o piatti", a: "FALSO"},
+{q: "Lavoro meglio quando ho una scadenza precisa", a: "FALSO"},
+{q: "Mi sono talmente arrabbiato con qualcuno che mi sono sentito come se stessi per esplodere", a: "FALSO"},
+{q: "A volte mi vengono in mente pensieri terribili sulla mia famiglia", a: "FALSO"},
+{q: "La gente mi dice che ho dei problemi con l’alcool, ma io non sono d’accordo", a: "FALSO"},
+{q: "Ho sempre troppo poco tempo per portare a termine ciò che devo fare", a: "FALSO"},
+{q: "In questo periodo i miei pensieri sono rivolti sempre più spesso alla morte e alla vita dopo la morte", a: "FALSO"},
+{q: "Spesso raccolgo e conservo oggetti che probabilmente non userò mai", a: "FALSO"},
+{q: "A volte mi sono arrabbiato così tanto che mi sono picchiato con qualcuno, facendogli del male", a: "FALSO"},
+{q: "Ultimamente mi sento giudicato per ogni cosa che faccio", a: "FALSO"},
+{q: "Attualmente ho poco a che fare con i miei parenti", a: "FALSO"},
+{q: "A volte mi sembra di sentire pronunciare a voce alta i miei pensieri", a: "FALSO"},
+{q: "Quando sono triste la compagnia degli amici può sempre tirarmi su il morale", a: "VERO"},
+{q: "Molto di ciò che mi sta succedendo ora sembra essermi già capitato prima", a: "FALSO"},
+{q: "Quando la vita diventa difficile, mi viene voglia di darmi per vinto", a: "FALSO"},
+{q: "Non posso entrare da solo in una stanza buia anche se sono a casa mia", a: "FALSO"},
+{q: "I soldi mi preoccupano molto", a: "FALSO"},
+{q: "L’uomo dovrebbe essere il capo della famiglia", a: "FALSO"},
+{q: "L’unico posto in cui mi sento rilassato è casa mia", a: "FALSO"},
+{q: "Le persone con cui lavoro non comprendono i miei problemi", a: "VERO"},
+{q: "Sono soddisfatto di quanto guadagno", a: "FALSO"},
+{q: "Di solito ho abbastanza energia per fare il mio lavoro", a: "VERO"},
+{q: "E’ difficile per me accettare complimenti", a: "FALSO"},
+{q: "Nella maggior parte dei matrimoni uno o entrambi i coniugi sono infelici", a: "FALSO"},
+{q: "Quasi mai perdo il controllo di me stesso", a: "VERO"},
+{q: "In questo periodo devo fare un grande sforzo per ricordare che cosa mi dice la gente", a: "FALSO"},
+{q: "Quando sono triste o malinconico il mio lavoro ne risente", a: "FALSO"},
+{q: "Nella maggior parte delle coppie, i coniugi non mostrano grande affetto l’uno verso l’altro", a: "FALSO"}
+    ];
+     // Funzione per mescolare un array (algoritmo Fisher-Yates)
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    // 1. Crea una copia mescolata di tutte le domande
+    const shuffledQuestions = shuffleArray([...allQuestions]);
+
+    // 2. Estrai le prime 40 domande dall'array mescolato
+    const questions = shuffledQuestions.slice(0, 40);
+    
+    // --- FINE DEL CODICE DA INSERIRE ---
+    const quizDiv = document.getElementById("quiz");
+    const nextBtn = document.getElementById("nextBtn");
+    const prevBtn = document.getElementById("prevBtn");
+    const finishBtn = document.getElementById("finishBtn");
+    const progressText = document.getElementById("progressText");
+    const summary = document.getElementById("summary");
+    const summaryText = document.getElementById("summaryText");
+
+    function showQuestion(index) {
+      const q = questions[index];
+      quizDiv.innerHTML = `
+        <div class="question">
+          <div class="question-text">${index + 1}. ${q.q}</div>
+          <button class="true-btn" onclick="selectAnswer('VERO')">VERO</button>
+          <button class="false-btn" onclick="selectAnswer('FALSO')">FALSO</button>
+        </div>
+      `;
+      updateProgress();
+      highlightSelection();
+    }
+
+    window.selectAnswer = function(answer) {
+      userAnswers[currentQuestionIndex] = answer;
+      highlightSelection();
+    };
+
+    function highlightSelection() {
+      const selected = userAnswers[currentQuestionIndex];
+      const buttons = document.querySelectorAll("button.true-btn, button.false-btn");
+      buttons.forEach(b => b.classList.remove("selected"));
+      if (selected) {
+        const btn = [...buttons].find(b => b.textContent === selected);
+        if (btn) btn.classList.add("selected");
+      }
+    }
+
+    function updateProgress() {
+      progressText.textContent = `Domanda ${currentQuestionIndex + 1} di ${questions.length}`;
+      prevBtn.disabled = currentQuestionIndex === 0;
+      nextBtn.disabled = currentQuestionIndex === questions.length - 1;
+    }
+
+    nextBtn.onclick = () => {
+      if (currentQuestionIndex < questions.length - 1) {
+        currentQuestionIndex++;
+        showQuestion(currentQuestionIndex);
+      }
+    };
+
+    prevBtn.onclick = () => {
+      if (currentQuestionIndex > 0) {
+        currentQuestionIndex--;
+        showQuestion(currentQuestionIndex);
+      }
+    };
+
+    finishBtn.onclick = showSummary;
+
+    function showSummary() {
+      let correct = 0;
+      let details = "<ol>";
+
+      questions.forEach((q, i) => {
+        const user = userAnswers[i];
+        const expected = q.a;
+        const isCorrect = user === expected;
+        if (isCorrect) correct++;
+        const symbol = isCorrect ? "✔️" : "❌";
+        const color = isCorrect ? "green" : "red";
+        const userText = user || "(nessuna risposta)";
+        details += `<li><strong>${q.q}</strong><br>
+          Tua risposta: <span style="color:${color}">${userText}</span> ${symbol}<br>
+          Risposta corretta: <b>${expected}</b>
+        </li><br>`;
+      });
+      details += "</ol>";
+
+      const total = questions.length;
+      summaryText.innerHTML = `<p>Hai risposto correttamente a <b>${correct}</b> su <b>${total}</b> domande.</p>` + details;
+
+      summary.style.display = "block";
+      quizDiv.style.display = "none";
+      document.querySelector(".nav").style.display = "none";
+    }
+document.addEventListener("keydown", function(event) {
+      // Controlla che il quiz sia visibile per non interferire con altro
+      if (quizDiv.style.display === "none") {
+        return;
+      }
+
+      const key = event.key.toLowerCase(); // Converte il tasto in minuscolo
+
+      if (key === 'v') {
+        selectAnswer('VERO');
+      } else if (key === 'f') {
+        selectAnswer('FALSO');
+      }
+    });
+
+    showQuestion(currentQuestionIndex);
+  });
+  </script>
+</body>
+</html>
